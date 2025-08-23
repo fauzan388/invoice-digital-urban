@@ -1755,6 +1755,50 @@ html:not([data-theme="light"]) .header .btn:hover {
 }
 </style>
 
+
+<style id="header-buttons-darktheme-frosted">
+/* Light Theme Buttons (default) */
+html[data-theme="light"] .header .btn {
+  background: rgba(0,0,0,0.05) !important;
+  border: 1px solid rgba(0,0,0,0.15) !important;
+  color: #111 !important;
+}
+
+/* Dark Theme Buttons - Deep Dark Blue (#0E1531) with Frosted Glass */
+html:not([data-theme="light"]) .header .btn {
+  background: rgba(14,21,49,0.65) !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  color: #fff !important;
+  backdrop-filter: blur(8px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(150%) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+html:not([data-theme="light"]) .header .btn:hover {
+  background: rgba(14,21,49,0.85) !important;
+  transform: translateY(-2px);
+}
+</style>
+
+
+<style id="header-buttons-darktheme-frosted-strong">
+/* Dark Theme Buttons - Force #0E1531 with frosted glass */
+html:not([data-theme="light"]) .header .toolbar-row .btn {
+  background-color: rgba(14,21,49,0.85) !important; /* #0E1531 solid navy */
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  color: #ffffff !important;
+  backdrop-filter: blur(10px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+  transition: all 0.3s ease !important;
+}
+html:not([data-theme="light"]) .header .toolbar-row .btn:hover {
+  background-color: rgba(14,21,49,1) !important; /* darker on hover */
+  box-shadow: 0 0 10px rgba(14,21,49,0.7) !important;
+  transform: translateY(-2px);
+}
+</style>
+
 </head>
 <body>
 <div class="container">
