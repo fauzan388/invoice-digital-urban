@@ -36,6 +36,30 @@
             100% { opacity: 1; transform: scale(1); }
         }
         .sparkle-anim { animation: sparkle 1.5s infinite; }
+
+        /* PRINT STYLES - Hides everything except the invoice area */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .printable-area, .printable-area * {
+                visibility: visible;
+            }
+            .printable-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                background: white;
+                box-shadow: none;
+                border: none;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-800">
@@ -46,7 +70,6 @@
 
         // --- KONFIGURASI API KEY ---
         // PENTING: Ganti string kosong di bawah ini dengan API Key Gemini Anda
-        // Dapatkan di: https://aistudio.google.com/app/apikey
         const apiKey = "AIzaSyBpWVjSVje-g76J-v2Z0CBJAZrDaODjhRg"; 
 
         // --- Helper: Panggil Gemini API ---
@@ -88,6 +111,12 @@
         const IconShare = ({size=24}) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>);
         const IconDownload = ({size=24}) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>);
         const IconSparkles = ({size=24, className=""}) => (<svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z"/></svg>);
+        
+        // --- New Icons for UI Upgrade ---
+        const IconUser = ({size=20}) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>);
+        const IconClock = ({size=20}) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>);
+        const IconMapPin = ({size=20}) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>);
+        const IconTag = ({size=20}) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>);
 
         // --- Main App Component ---
         const App = () => {
@@ -100,7 +129,7 @@
             ];
 
             return (
-                <div className="min-h-screen pb-12 bg-gray-50/50">
+                <div className="min-h-screen pb-12 bg-gray-50/50 no-print">
                     {/* Header */}
                     <header className="bg-white shadow-sm sticky top-0 z-20 backdrop-blur-md bg-white/90">
                         <div className="max-w-3xl mx-auto px-4 py-4 text-center">
@@ -114,7 +143,7 @@
                     </header>
 
                     {/* Main Content */}
-                    <main className="max-w-3xl mx-auto px-4 py-6">
+                    <main className="max-w-4xl mx-auto px-4 py-6">
                         {/* Navigation Tabs */}
                         <div className="flex bg-gray-200/80 p-1.5 rounded-xl mb-6 overflow-x-auto no-scrollbar gap-1">
                         {tabs.map((tab) => (
@@ -136,23 +165,168 @@
                         {/* Tab Content */}
                         <div className="bg-white rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-100 overflow-hidden min-h-[400px]">
                         {activeTab === 0 && <SewaPSForm />}
-                        {activeTab === 1 && <EmptyState title="Invoice Isi Game" icon={<IconPackage size={48} />} />}
-                        {activeTab === 2 && <EmptyState title="Invoice Service" icon={<IconWrench size={48} />} />}
+                        {activeTab === 1 && <IsiGameForm />}
+                        {activeTab === 2 && <ServiceForm />}
                         </div>
                     </main>
                 </div>
             );
         };
 
+        // --- KOMPONEN: Invoice Preview Umum (Reusable) ---
+        const InvoicePreview = ({ 
+            title = "INVOICE", 
+            customerName, 
+            date, 
+            items = [], 
+            total, 
+            terms, // Added prop for Terms & Conditions
+            onClose, 
+            onShareWA, 
+            onDownloadPDF,
+            isPdfProcessing,
+            isMsgLoading,
+            invoiceRef 
+        }) => {
+            return (
+                <div className="animate-fade-in fixed inset-0 z-50 bg-white md:static md:bg-transparent overflow-y-auto">
+                     {/* Actions Bar (Hidden on Print) */}
+                    <div className="no-print flex gap-2 mb-6 justify-between items-center bg-gray-100 p-2 rounded-lg sticky top-0 z-50">
+                        <button 
+                            onClick={onClose}
+                            className="p-2 text-gray-500 hover:bg-white hover:text-red-500 rounded-lg transition-colors"
+                            title="Tutup / Edit Kembali"
+                        >
+                            <IconX size={20} />
+                        </button>
+                        <div className="flex gap-2">
+                             <button 
+                                onClick={() => window.print()}
+                                className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-md transition-all"
+                                title="Print Browser"
+                            >
+                                <IconPrinter size={16} /> Print
+                            </button>
+                            {onShareWA && (
+                                <button 
+                                    onClick={onShareWA}
+                                    disabled={isMsgLoading}
+                                    className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-white transition-all hidden md:flex
+                                        ${isMsgLoading ? 'bg-green-400 cursor-wait' : 'bg-green-600 hover:bg-green-700 shadow-md'}`}
+                                >
+                                    <IconSparkles size={16} className={isMsgLoading ? "animate-spin" : ""} /> 
+                                    WA
+                                </button>
+                            )}
+                            <button 
+                                onClick={onDownloadPDF}
+                                disabled={isPdfProcessing}
+                                className={`px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-md transition-all
+                                    ${isPdfProcessing ? 'opacity-70 cursor-wait' : ''}`}
+                            >
+                                {isPdfProcessing ? <span className="animate-pulse">...</span> : <><IconShare size={16} /> PDF</>}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* INVOICE AREA (Printable) */}
+                    <div className="printable-area border shadow-2xl rounded-sm overflow-hidden bg-white mx-auto max-w-[210mm] min-h-[297mm] md:min-h-0 md:h-auto" ref={invoiceRef}>
+                        {/* Header */}
+                        <div className="bg-indigo-900 text-white p-8 flex justify-between items-start">
+                            <div>
+                                <h2 className="text-3xl font-extrabold tracking-wide">{title}</h2>
+                                <p className="text-indigo-200 text-sm mt-1">#{Date.now().toString().slice(-6)}</p>
+                            </div>
+                            <div className="text-right flex flex-col items-end">
+                                <img 
+                                    src="logo.png" 
+                                    onError={(e) => { e.target.onerror = null; e.target.src = "https://i.ibb.co.com/207KDFc7/PLAYBOX.png"; }}
+                                    alt="Logo" 
+                                    className="h-16 mb-2 object-contain bg-white rounded-lg p-1"
+                                />
+                                <h3 className="font-bold text-lg">URBAN Gaming Lampung</h3>
+                                <p className="text-indigo-200 text-xs mt-1">Rental PlayStation & Service</p>
+                                <p className="text-indigo-200 text-xs">Lampung, Indonesia</p>
+                            </div>
+                        </div>
+
+                        {/* Customer Info */}
+                        <div className="p-8">
+                            <div className="flex flex-col md:flex-row justify-between mb-8 text-sm">
+                                <div className="mb-4 md:mb-0">
+                                    <p className="text-gray-500 font-medium uppercase text-xs mb-1">Ditagihkan Kepada:</p>
+                                    <p className="font-bold text-lg text-gray-800">{customerName || '-'}</p>
+                                    <p className="text-gray-600">{date}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-gray-500 font-medium uppercase text-xs mb-1">Tanggal Cetak:</p>
+                                    <p className="font-bold text-gray-800">{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                </div>
+                            </div>
+
+                            {/* Table Items */}
+                            <div className="mt-8">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr>
+                                            <th className="py-3 px-4 bg-gray-50 font-bold uppercase text-xs text-gray-500 border-b border-gray-200">Deskripsi</th>
+                                            <th className="py-3 px-4 bg-gray-50 font-bold uppercase text-xs text-gray-500 border-b border-gray-200 text-right">Harga</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-sm">
+                                        {items.map((item, idx) => (
+                                            <tr key={idx}>
+                                                <td className="py-4 px-4 border-b border-gray-100">
+                                                    <p className="font-bold text-gray-800">{item.name}</p>
+                                                    {item.desc && <p className="text-gray-500 text-xs mt-1 whitespace-pre-wrap">{item.desc}</p>}
+                                                </td>
+                                                <td className="py-4 px-4 border-b border-gray-100 text-right font-medium">
+                                                    Rp {item.price.toLocaleString('id-ID')}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td className="py-4 px-4 text-right font-bold text-gray-600">Total Tagihan</td>
+                                            <td className="py-4 px-4 text-right font-bold text-xl text-indigo-600">
+                                                Rp {total.toLocaleString('id-ID')}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            {/* Terms Section (Restored) */}
+                            {terms && (
+                                <div className="mt-12 bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                                    <h4 className="font-bold text-indigo-800 text-sm mb-2 flex items-center gap-2">
+                                        <IconFileText size={14}/> Syarat & Ketentuan
+                                    </h4>
+                                    <div className="text-xs text-indigo-700 leading-relaxed">
+                                        {terms}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Footer */}
+                            <div className="mt-12 text-center">
+                                <p className="text-xs text-gray-400">Terima kasih telah mempercayakan kebutuhan gaming Anda kepada URBAN Gaming Lampung 🎮</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- KOMPONEN 1: Sewa PS ---
         const SewaPSForm = () => {
-            // Form States
             const [rawChat, setRawChat] = useState(`Sewa PS URBAN PlayStation 
 Nama Penyewa : Andi Gaming
 Jenis PS : PS5 + TV 4K
 Lama Sewa : 24 Jam
 Antar Jemput : Ya`);
             
-            // Extracted/Editable Data States
             const [customerName, setCustomerName] = useState('');
             const [psType, setPsType] = useState('');
             const [duration, setDuration] = useState('');
@@ -160,7 +334,6 @@ Antar Jemput : Ya`);
             const [price, setPrice] = useState('');
             const [shipping, setShipping] = useState('');
             
-            // UI States
             const [showInvoice, setShowInvoice] = useState(false);
             const [isAiLoading, setIsAiLoading] = useState(false);
             const [isMsgLoading, setIsMsgLoading] = useState(false);
@@ -168,394 +341,347 @@ Antar Jemput : Ya`);
             
             const invoiceRef = useRef();
 
-            // Initial parse on load (manual regex fallback)
-            useEffect(() => {
-                manualParse();
-            }, []);
-
+            useEffect(() => { manualParse(); }, []);
             const manualParse = () => {
                 const lines = rawChat.split('\n');
                 const findVal = (key) => lines.find(l => l.toLowerCase().includes(key.toLowerCase()))?.split(':')[1]?.trim() || '';
-                
                 if(!customerName) setCustomerName(findVal('Nama'));
                 if(!psType) setPsType(findVal('Jenis'));
                 if(!duration) setDuration(findVal('Lama'));
                 if(!delivery) setDelivery(findVal('Antar'));
             };
 
-            // --- ✨ FITUR AI 1: Ekstraksi Data Cerdas ---
             const handleAiExtract = async () => {
                 setIsAiLoading(true);
-                const prompt = `
-                    Kamu adalah asisten admin rental PS. Ekstrak data berikut dari teks chat pelanggan ini menjadi format JSON.
-                    Jika data tidak ditemukan, isi dengan string kosong atau 0.
-                    
-                    Teks Chat:
-                    """${rawChat}"""
-
-                    Format JSON yang diminta:
-                    {
-                        "nama": "Nama pelanggan",
-                        "jenis_ps": "Jenis console (misal PS4/PS5)",
-                        "lama": "Durasi sewa (misal 12 jam/1 hari)",
-                        "antar_status": "Ya/Tidak (berdasarkan konteks antar jemput)",
-                        "harga_sewa": 0 (hanya jika ada angka harga sewa spesifik di chat, jika tidak 0),
-                        "ongkir": 0 (hanya jika ada angka ongkir spesifik di chat, jika tidak 0)
-                    }
-                    Hanya return JSON valid tanpa markdown.
-                `;
-
+                const prompt = `Kamu admin rental PS. Ekstrak JSON: { "nama": "", "jenis_ps": "", "lama": "", "antar_status": "", "harga_sewa": 0, "ongkir": 0 } dari: """${rawChat}""". Valid JSON only.`;
                 const result = await generateWithGemini(prompt);
-                
                 if (result) {
                     try {
-                        // Bersihkan markdown jika ada (kadang gemini nambahin ```json)
                         const cleaned = result.replace(/```json/g, '').replace(/```/g, '').trim();
                         const data = JSON.parse(cleaned);
-                        
                         setCustomerName(data.nama || customerName);
                         setPsType(data.jenis_ps || psType);
                         setDuration(data.lama || duration);
                         setDelivery(data.antar_status || delivery);
                         if(data.harga_sewa > 0) setPrice(data.harga_sewa.toString());
                         if(data.ongkir > 0) setShipping(data.ongkir.toString());
-                        
-                    } catch (e) {
-                        console.error("Gagal parse JSON AI", e);
-                        alert("Gagal membaca respon AI. Coba lagi.");
-                    }
+                    } catch (e) { alert("Gagal membaca respon AI."); }
                 }
                 setIsAiLoading(false);
             };
 
-            const handleGenerate = () => {
-                if (!price) {
-                    alert("Mohon masukkan harga sewa!");
-                    return;
-                }
-                setShowInvoice(true);
-            };
-
-            // --- FITUR DOWNLOAD & SHARE PDF ---
             const handleDownloadPDF = async () => {
-                if (!window.html2pdf) {
-                    alert("Sistem PDF belum siap.");
-                    return;
-                }
-                
-                setIsPdfProcessing(true); // Indikator loading tombol
-                
+                if (!window.html2pdf) { alert("Sistem PDF belum siap."); return; }
+                setIsPdfProcessing(true);
                 const element = invoiceRef.current;
-                const filename = `Invoice_${(customerName || 'Cust').replace(/\s+/g, '_')}_${Date.now()}.pdf`;
-                const opt = {
-                    margin: 0,
-                    filename: filename,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
-
+                const filename = `Invoice_Sewa_${(customerName || 'Cust').replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+                const opt = { margin: 0, filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
                 try {
-                    // 1. Coba Generate sebagai Blob untuk Web Share API
                     const worker = window.html2pdf().set(opt).from(element);
                     const pdfBlob = await worker.output('blob');
-                    
                     const file = new File([pdfBlob], filename, { type: 'application/pdf' });
-
-                    // 2. Cek apakah Browser mendukung Share File (biasanya di HP Android/iOS)
                     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                            files: [file],
-                            title: 'Invoice URBAN Gaming',
-                            text: `Berikut invoice untuk ${customerName || 'Pelanggan'}`,
-                        });
+                        await navigator.share({ files: [file], title: 'Invoice URBAN Gaming', text: `Invoice Sewa PS untuk ${customerName}` });
                     } else {
-                        // 3. Fallback: Jika tidak bisa share (misal di PC Desktop), lakukan download biasa
-                        const url = URL.createObjectURL(pdfBlob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = filename;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
+                        window.html2pdf().set(opt).from(element).save();
                     }
-                } catch (err) {
-                    console.error("Gagal share/download PDF:", err);
-                    // Fallback terakhir jika cara di atas gagal total: pakai fungsi save() bawaan lib
-                    window.html2pdf().set(opt).from(element).save();
-                } finally {
-                    setIsPdfProcessing(false);
-                }
+                } catch (err) { window.html2pdf().set(opt).from(element).save(); } finally { setIsPdfProcessing(false); }
             };
 
-            // --- ✨ FITUR AI 2: Generate Pesan WA ---
             const handleShareWA = async () => {
                 setIsMsgLoading(true);
                 const total = (parseInt(price) || 0) + (parseInt(shipping) || 0);
-                
-                // Minta Gemini membuatkan caption
-                const prompt = `
-                    Buatkan pesan WhatsApp singkat, ramah, dan seru untuk mengirim invoice rental PS.
-                    Gunakan Bahasa Indonesia yang gaul tapi sopan. Gunakan banyak emoji gaming.
-                    
-                    Data:
-                    Nama: ${customerName}
-                    Unit: ${psType}
-                    Durasi: ${duration}
-                    Total: Rp ${total.toLocaleString('id-ID')}
-                    
-                    Pesan harus menyertakan "Berikut adalah invoice Anda" dan rincian total.
-                    Jangan pakai subject/judul, langsung isi pesan saja.
-                `;
-
+                const prompt = `Buat caption WA invoice rental PS untuk ${customerName}, unit ${psType}, durasi ${duration}, total Rp ${total.toLocaleString('id-ID')}. Bahasa gaul sopan, emoji gaming.`;
                 const aiMessage = await generateWithGemini(prompt);
-                
-                // Fallback jika AI gagal
-                const finalMessage = aiMessage || `Halo Bro ${customerName}! 👋\n\nTerima kasih sudah sewa di URBAN Gaming.\nBerikut invoice untuk unit ${psType} selama ${duration}.\n\nTotal: Rp ${total.toLocaleString('id-ID')}\n\nHappy Gaming! 🎮`;
-
+                const finalMessage = aiMessage || `Halo ${customerName}! Invoice sewa ${psType} total Rp ${total.toLocaleString('id-ID')} sudah siap.`;
                 setIsMsgLoading(false);
                 window.open(`https://wa.me/?text=${encodeURIComponent(finalMessage)}`, '_blank');
             };
 
-            const totalAmount = (parseInt(price) || 0) + (parseInt(shipping) || 0);
+            const invoiceItems = [
+                { name: "Sewa Unit Console", desc: `${psType || '-'} (${duration || '-'})`, price: parseInt(price) || 0 },
+            ];
+            if(parseInt(shipping) > 0) invoiceItems.push({ name: "Biaya Pengiriman", desc: "Ongkos Kirim / Antar Jemput", price: parseInt(shipping) || 0 });
+
+            // Specific Terms for Sewa PS
+            const sewaTerms = (
+                <>
+                    <p>1. Siapkan <strong>KTP + SIM/STNK</strong> asli untuk syarat jaminan.</p>
+                    <p>2. Kerusakan unit selama masa sewa menjadi tanggung jawab penyewa.</p>
+                    <p>3. Keterlambatan pengembalian akan dikenakan denda sesuai ketentuan.</p>
+                </>
+            );
+
+            if(showInvoice) {
+                return <InvoicePreview 
+                    title="INVOICE SEWA"
+                    customerName={customerName}
+                    date={`Layanan: ${delivery}`}
+                    items={invoiceItems}
+                    total={(parseInt(price) || 0) + (parseInt(shipping) || 0)}
+                    terms={sewaTerms}
+                    onClose={() => setShowInvoice(false)}
+                    onShareWA={handleShareWA}
+                    onDownloadPDF={handleDownloadPDF}
+                    isPdfProcessing={isPdfProcessing}
+                    isMsgLoading={isMsgLoading}
+                    invoiceRef={invoiceRef}
+                />;
+            }
+
+            const currentTotal = (parseInt(price) || 0) + (parseInt(shipping) || 0);
 
             return (
-                <div className="p-6 relative">
-                {!showInvoice ? (
-                    <div className="space-y-6 animate-fade-in">
-                        {/* Area Input Chat & AI Button */}
-                        <div className="space-y-3 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
-                            <div className="flex justify-between items-center">
-                                <label className="text-sm font-bold text-indigo-900 flex items-center gap-2">
-                                    <IconFileText size={16} />
-                                    Paste Chat Customer
+                <div className="p-6 relative space-y-6 animate-fade-in">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* LEFT COLUMN: SOURCE (CHAT) */}
+                        <div className="lg:col-span-1 space-y-4">
+                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                <label className="text-sm font-bold text-gray-700 flex items-center gap-2 mb-3">
+                                    <IconFileText size={18} className="text-indigo-500" /> 
+                                    Sumber Data (Chat)
                                 </label>
+                                <textarea 
+                                    value={rawChat} 
+                                    onChange={(e) => setRawChat(e.target.value)} 
+                                    className="w-full p-3 text-sm border border-gray-200 rounded-xl h-64 font-mono resize-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" 
+                                    placeholder="Paste chat disini..." 
+                                />
                                 <button 
-                                    onClick={handleAiExtract}
-                                    disabled={isAiLoading}
-                                    className={`text-xs px-3 py-1.5 rounded-full font-semibold flex items-center gap-1.5 transition-all
-                                        ${isAiLoading 
-                                            ? 'bg-gray-300 text-gray-500 cursor-wait' 
-                                            : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:shadow-md hover:scale-105 active:scale-95'
-                                        }`}
+                                    onClick={handleAiExtract} 
+                                    disabled={isAiLoading} 
+                                    className={`w-full mt-3 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg
+                                        ${isAiLoading ? 'bg-gray-100 text-gray-400' : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:scale-[1.02]'}`}
                                 >
-                                    <IconSparkles size={14} className={isAiLoading ? "sparkle-anim" : ""} />
-                                    {isAiLoading ? "Sedang Membaca..." : "Auto-Isi AI"}
+                                    <IconSparkles size={16} className={isAiLoading ? "sparkle-anim" : ""} /> 
+                                    {isAiLoading ? "Menganalisa..." : "Auto-Isi dengan AI"}
                                 </button>
+                                <p className="text-xs text-center text-gray-400 mt-2">AI akan membaca & mengisi form di sebelah kanan otomatis.</p>
                             </div>
-                            <textarea
-                                value={rawChat}
-                                onChange={(e) => setRawChat(e.target.value)}
-                                className="w-full p-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white h-24 font-mono leading-relaxed resize-none text-gray-600"
-                                placeholder="Paste chat disini..."
-                            />
-                            <p className="text-[10px] text-gray-400 text-right italic">
-                                *Tips: Klik Auto-Isi AI untuk mengisi form di bawah secara otomatis
-                            </p>
                         </div>
 
-                        {/* Form Input Manual / Hasil AI */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                            {/* Data Customer */}
-                            <div className="col-span-1 md:col-span-2">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Data Penyewa</h3>
+                        {/* RIGHT COLUMN: FORM INPUTS */}
+                        <div className="lg:col-span-2 space-y-5">
+                            {/* Section 1: Data Penyewa */}
+                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">Informasi Penyewa</h3>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                        <IconUser size={18} />
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        value={customerName} 
+                                        onChange={(e)=>setCustomerName(e.target.value)} 
+                                        className="pl-10 w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 transition-all font-medium text-gray-700"
+                                        placeholder="Nama Pelanggan"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Section 2: Detail Unit & Layanan */}
+                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">Detail Unit & Layanan</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                            <IconGamepad size={18} />
+                                        </div>
+                                        <input 
+                                            type="text" 
+                                            value={psType} 
+                                            onChange={(e)=>setPsType(e.target.value)} 
+                                            className="pl-10 w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                                            placeholder="Jenis Console (Ex: PS5)"
+                                        />
+                                    </div>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                            <IconClock size={18} />
+                                        </div>
+                                        <input 
+                                            type="text" 
+                                            value={duration} 
+                                            onChange={(e)=>setDuration(e.target.value)} 
+                                            className="pl-10 w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                                            placeholder="Durasi (Ex: 24 Jam)"
+                                        />
+                                    </div>
+                                    <div className="relative md:col-span-2">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                            <IconMapPin size={18} />
+                                        </div>
+                                        <input 
+                                            type="text" 
+                                            value={delivery} 
+                                            onChange={(e)=>setDelivery(e.target.value)} 
+                                            className="pl-10 w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                                            placeholder="Layanan Antar / Jemput"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 3: Keuangan */}
+                            <div className="bg-indigo-50 p-5 rounded-2xl border border-indigo-100 shadow-inner">
+                                <h3 className="text-sm font-bold text-indigo-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <IconTag size={16}/> Rincian Biaya
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                     <div>
-                                        <label className="text-xs font-semibold text-gray-600 mb-1 block">Nama Pelanggan</label>
-                                        <input type="text" value={customerName} onChange={(e)=>setCustomerName(e.target.value)} className="w-full p-2.5 rounded-lg border border-gray-300 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-medium" />
+                                        <label className="text-xs font-semibold text-indigo-600 mb-1 block pl-1">Harga Sewa</label>
+                                        <div className="relative">
+                                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-indigo-400 font-bold text-sm">Rp</span>
+                                            <input 
+                                                type="number" 
+                                                value={price} 
+                                                onChange={(e)=>setPrice(e.target.value)} 
+                                                className="pl-10 w-full p-3 rounded-xl border border-indigo-200 focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
+                                                placeholder="0"
+                                            />
+                                        </div>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-semibold text-gray-600 mb-1 block">Durasi Sewa</label>
-                                        <input type="text" value={duration} onChange={(e)=>setDuration(e.target.value)} className="w-full p-2.5 rounded-lg border border-gray-300 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+                                        <label className="text-xs font-semibold text-indigo-600 mb-1 block pl-1">Ongkos Kirim</label>
+                                        <div className="relative">
+                                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-indigo-400 font-bold text-sm">Rp</span>
+                                            <input 
+                                                type="number" 
+                                                value={shipping} 
+                                                onChange={(e)=>setShipping(e.target.value)} 
+                                                className="pl-10 w-full p-3 rounded-xl border border-indigo-200 focus:ring-2 focus:ring-indigo-500 font-bold text-gray-700"
+                                                placeholder="0"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            {/* Detail Unit & Layanan */}
-                            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
-                                <h3 className="text-sm font-bold text-gray-800 border-b pb-2 flex items-center gap-2">
-                                    <IconGamepad size={16} className="text-indigo-500"/> Unit & Layanan
-                                </h3>
-                                <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">Jenis Console</label>
-                                    <input type="text" value={psType} onChange={(e)=>setPsType(e.target.value)} className="w-full p-2 rounded border border-gray-300 text-sm" placeholder="Ex: PS4 Pro" />
-                                </div>
-                                <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">Antar / Jemput</label>
-                                    <input type="text" value={delivery} onChange={(e)=>setDelivery(e.target.value)} className="w-full p-2 rounded border border-gray-300 text-sm" placeholder="Ya / Tidak" />
+                                <div className="flex justify-between items-center pt-4 border-t border-indigo-200">
+                                    <span className="text-sm font-medium text-indigo-600">Total Tagihan</span>
+                                    <span className="text-2xl font-extrabold text-indigo-700">Rp {currentTotal.toLocaleString('id-ID')}</span>
                                 </div>
                             </div>
 
-                            {/* Detail Biaya */}
-                            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
-                                <h3 className="text-sm font-bold text-gray-800 border-b pb-2 flex items-center gap-2">
-                                    <IconPackage size={16} className="text-green-500"/> Rincian Biaya
-                                </h3>
-                                <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">Harga Sewa (Rp)</label>
-                                    <input type="number" value={price} onChange={(e)=>setPrice(e.target.value)} className="w-full p-2 rounded border border-gray-300 text-sm font-bold text-gray-800" placeholder="0" />
-                                </div>
-                                <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">Ongkos Kirim (Rp)</label>
-                                    <input type="number" value={shipping} onChange={(e)=>setShipping(e.target.value)} className="w-full p-2 rounded border border-gray-300 text-sm" placeholder="0" />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Action Button */}
-                        <button
-                            onClick={handleGenerate}
-                            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 mt-4"
-                        >
-                            <IconPrinter size={20} />
-                            Buat Invoice
-                        </button>
-                    </div>
-                ) : (
-                    <div className="animate-fade-in">
-                    {/* Invoice Actions */}
-                    <div className="flex gap-2 mb-6 justify-between items-center bg-gray-100 p-2 rounded-lg">
-                        <button 
-                            onClick={() => setShowInvoice(false)}
-                            className="p-2 text-gray-500 hover:bg-white hover:text-red-500 rounded-lg transition-colors"
-                            title="Edit Kembali"
-                        >
-                            <IconX size={20} />
-                        </button>
-                        <div className="flex gap-2">
+                            {/* Action Button */}
                             <button 
-                                onClick={handleShareWA}
-                                disabled={isMsgLoading}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-white transition-all
-                                    ${isMsgLoading 
-                                        ? 'bg-green-400 cursor-wait' 
-                                        : 'bg-green-600 hover:bg-green-700 shadow-md hover:shadow-lg'}`}
+                                onClick={() => setShowInvoice(true)} 
+                                className="w-full py-4 bg-gray-900 hover:bg-black text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all"
                             >
-                                <IconSparkles size={16} className={isMsgLoading ? "animate-spin" : ""} /> 
-                                {isMsgLoading ? "Membuat Pesan..." : "Share WA (AI)"}
-                            </button>
-                            <button 
-                                onClick={handleDownloadPDF}
-                                disabled={isPdfProcessing}
-                                className={`px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-all
-                                    ${isPdfProcessing ? 'opacity-70 cursor-wait' : ''}`}
-                            >
-                                {isPdfProcessing ? <span className="animate-pulse">Loading...</span> : <><IconShare size={16} /> Share PDF</>}
+                                <IconPrinter size={20} /> 
+                                Buat & Print Invoice
                             </button>
                         </div>
                     </div>
-
-                    {/* INVOICE PREVIEW AREA */}
-                    <div className="border shadow-2xl rounded-sm overflow-hidden bg-white mx-auto max-w-[210mm] min-h-[297mm] md:min-h-0 md:h-auto" ref={invoiceRef}>
-                        {/* Header Invoice */}
-                        <div className="bg-indigo-900 text-white p-8 flex justify-between items-start">
-                            <div>
-                            <h2 className="text-3xl font-extrabold tracking-wide">INVOICE</h2>
-                            <p className="text-indigo-200 text-sm mt-1">#{Date.now().toString().slice(-6)}</p>
-                            </div>
-                            <div className="text-right flex flex-col items-end">
-                            <img 
-                                src="logo.png" 
-                                onError={(e) => { e.target.onerror = null; e.target.src = "[https://i.ibb.co.com/207KDFc7/PLAYBOX.png](https://i.ibb.co.com/207KDFc7/PLAYBOX.png)"; }}
-                                alt="URBAN Gaming Logo" 
-                                className="h-16 mb-2 object-contain bg-white rounded-lg p-1"
-                            />
-                            <h3 className="font-bold text-lg">URBAN Gaming Lampung</h3>
-                            <p className="text-indigo-200 text-xs mt-1">Rental PlayStation & Service</p>
-                            <p className="text-indigo-200 text-xs">Lampung, Indonesia</p>
-                            </div>
-                        </div>
-
-                        {/* Customer Info */}
-                        <div className="p-8">
-                            <div className="flex flex-col md:flex-row justify-between mb-8 text-sm">
-                            <div className="mb-4 md:mb-0">
-                                <p className="text-gray-500 font-medium uppercase text-xs mb-1">Ditagihkan Kepada:</p>
-                                <p className="font-bold text-lg text-gray-800">{customerName || '-'}</p>
-                                <p className="text-gray-600">Durasi: {duration || '-'}</p>
-                                <p className="text-gray-600">Layanan Antar: {delivery || '-'}</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-gray-500 font-medium uppercase text-xs mb-1">Tanggal:</p>
-                                <p className="font-bold text-gray-800">{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                            </div>
-                            </div>
-
-                            {/* Table */}
-                            <div className="mt-8">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                <tr>
-                                    <th className="py-3 px-4 bg-gray-50 font-bold uppercase text-xs text-gray-500 border-b border-gray-200">Deskripsi</th>
-                                    <th className="py-3 px-4 bg-gray-50 font-bold uppercase text-xs text-gray-500 border-b border-gray-200 text-right">Harga</th>
-                                </tr>
-                                </thead>
-                                <tbody className="text-sm">
-                                <tr>
-                                    <td className="py-4 px-4 border-b border-gray-100">
-                                    <p className="font-bold text-gray-800">Sewa Unit Console</p>
-                                    <p className="text-gray-500 text-xs mt-1">{psType || '-'}</p>
-                                    </td>
-                                    <td className="py-4 px-4 border-b border-gray-100 text-right font-medium">
-                                    Rp {parseInt(price).toLocaleString('id-ID')}
-                                    </td>
-                                </tr>
-                                {parseInt(shipping) > 0 && (
-                                    <tr>
-                                    <td className="py-4 px-4 border-b border-gray-100">
-                                        <p className="font-bold text-gray-800">Biaya Pengiriman</p>
-                                        <p className="text-gray-500 text-xs mt-1">Ongkos Kirim / Antar Jemput</p>
-                                    </td>
-                                    <td className="py-4 px-4 border-b border-gray-100 text-right font-medium">
-                                        Rp {parseInt(shipping).toLocaleString('id-ID')}
-                                    </td>
-                                    </tr>
-                                )}
-                                </tbody>
-                                <tfoot>
-                                <tr>
-                                    <td className="py-4 px-4 text-right font-bold text-gray-600">Total Tagihan</td>
-                                    <td className="py-4 px-4 text-right font-bold text-xl text-indigo-600">
-                                    Rp {totalAmount.toLocaleString('id-ID')}
-                                    </td>
-                                </tr>
-                                </tfoot>
-                            </table>
-                            </div>
-
-                            {/* Terms */}
-                            <div className="mt-12 bg-indigo-50 p-4 rounded-lg border border-indigo-100">
-                            <h4 className="font-bold text-indigo-800 text-sm mb-2 flex items-center gap-2">
-                                <IconFileText size={14}/> Syarat & Ketentuan
-                            </h4>
-                            <p className="text-xs text-indigo-700 leading-relaxed">
-                                1. Siapkan <strong>KTP + SIM/STNK</strong> asli untuk syarat jaminan.<br/>
-                                2. Kerusakan unit selama masa sewa menjadi tanggung jawab penyewa.<br/>
-                                3. Keterlambatan pengembalian akan dikenakan denda sesuai ketentuan.
-                            </p>
-                            </div>
-
-                            <div className="mt-8 text-center">
-                            <p className="text-xs text-gray-400">Terima kasih telah bermain bersama URBAN Gaming Lampung 🎮</p>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-                )}
                 </div>
             );
         };
 
-        const EmptyState = ({ title, icon }) => (
-            <div className="flex flex-col items-center justify-center h-80 text-gray-400 p-6 text-center animate-fade-in">
-                <div className="bg-gray-100 p-4 rounded-full mb-4 text-gray-500">
-                {icon}
+        // --- KOMPONEN 2: Isi Game ---
+        const IsiGameForm = () => {
+            const [customerName, setCustomerName] = useState('');
+            const [consoleType, setConsoleType] = useState('');
+            const [gameList, setGameList] = useState('');
+            const [price, setPrice] = useState('');
+            const [showInvoice, setShowInvoice] = useState(false);
+            const [isPdfProcessing, setIsPdfProcessing] = useState(false);
+            const invoiceRef = useRef();
+
+            const handleDownloadPDF = async () => {
+                if (!window.html2pdf) return;
+                setIsPdfProcessing(true);
+                const element = invoiceRef.current;
+                const filename = `Invoice_IsiGame_${Date.now()}.pdf`;
+                const opt = { margin: 0, filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+                try { window.html2pdf().set(opt).from(element).save(); } finally { setIsPdfProcessing(false); }
+            };
+
+            // Specific Terms for Isi Game
+             const gameTerms = (
+                <>
+                    <p>1. Harap cek kembali daftar game yang diisi sebelum meninggalkan toko.</p>
+                    <p>2. Garansi game (crash/macet) berlaku 3 hari setelah pengisian.</p>
+                    <p>3. Tidak bertanggung jawab atas hilangnya save data jika terjadi error sistem.</p>
+                </>
+            );
+
+            if(showInvoice) {
+                return <InvoicePreview 
+                    title="INVOICE ISI GAME"
+                    customerName={customerName}
+                    date={`Console: ${consoleType}`}
+                    items={[{ name: "Jasa Isi Game", desc: `Daftar Game:\n${gameList}`, price: parseInt(price) || 0 }]}
+                    total={parseInt(price) || 0}
+                    terms={gameTerms}
+                    onClose={() => setShowInvoice(false)}
+                    onDownloadPDF={handleDownloadPDF}
+                    isPdfProcessing={isPdfProcessing}
+                    invoiceRef={invoiceRef}
+                />;
+            }
+
+            return (
+                <div className="p-6 space-y-6 animate-fade-in">
+                    <div><label className="text-xs font-semibold text-gray-600">Nama Pelanggan</label><input type="text" value={customerName} onChange={(e)=>setCustomerName(e.target.value)} className="w-full p-2 rounded border border-gray-300" /></div>
+                    <div><label className="text-xs font-semibold text-gray-600">Tipe Console</label><input type="text" value={consoleType} onChange={(e)=>setConsoleType(e.target.value)} className="w-full p-2 rounded border border-gray-300" placeholder="Ex: PS3 CFW / PS4 HEN" /></div>
+                    <div><label className="text-xs font-semibold text-gray-600">Daftar Game</label><textarea value={gameList} onChange={(e)=>setGameList(e.target.value)} className="w-full p-2 rounded border border-gray-300 h-24" placeholder="Masukkan list game..." /></div>
+                    <div><label className="text-xs font-semibold text-gray-600">Total Harga (Rp)</label><input type="number" value={price} onChange={(e)=>setPrice(e.target.value)} className="w-full p-2 rounded border border-gray-300 font-bold" /></div>
+                    <button onClick={() => setShowInvoice(true)} className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl flex items-center justify-center gap-2"><IconPrinter size={20} /> Buat Invoice</button>
                 </div>
-                <h3 className="text-lg font-medium text-gray-600">{title}</h3>
-                <p className="text-sm mt-2 max-w-xs">Fitur ini belum tersedia. Silahkan gunakan menu Invoice Sewa PS.</p>
-            </div>
-        );
+            );
+        };
+
+        // --- KOMPONEN 3: Service ---
+        const ServiceForm = () => {
+            const [customerName, setCustomerName] = useState('');
+            const [device, setDevice] = useState('');
+            const [issue, setIssue] = useState('');
+            const [price, setPrice] = useState('');
+            const [showInvoice, setShowInvoice] = useState(false);
+            const [isPdfProcessing, setIsPdfProcessing] = useState(false);
+            const invoiceRef = useRef();
+
+            const handleDownloadPDF = async () => {
+                if (!window.html2pdf) return;
+                setIsPdfProcessing(true);
+                const element = invoiceRef.current;
+                const filename = `Invoice_Service_${Date.now()}.pdf`;
+                const opt = { margin: 0, filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+                try { window.html2pdf().set(opt).from(element).save(); } finally { setIsPdfProcessing(false); }
+            };
+
+            // Specific Terms for Service
+            const serviceTerms = (
+                <>
+                    <p>1. Garansi service berlaku 1 minggu untuk kerusakan yang sama.</p>
+                    <p>2. Barang yang tidak diambil lebih dari 1 bulan bukan tanggung jawab kami.</p>
+                    <p>3. Segel rusak/hilang = Garansi Hangus.</p>
+                </>
+            );
+
+            if(showInvoice) {
+                return <InvoicePreview 
+                    title="INVOICE SERVICE"
+                    customerName={customerName}
+                    date={`Unit: ${device}`}
+                    items={[{ name: "Jasa Perbaikan / Service", desc: `Keluhan/Perbaikan:\n${issue}`, price: parseInt(price) || 0 }]}
+                    total={parseInt(price) || 0}
+                    terms={serviceTerms}
+                    onClose={() => setShowInvoice(false)}
+                    onDownloadPDF={handleDownloadPDF}
+                    isPdfProcessing={isPdfProcessing}
+                    invoiceRef={invoiceRef}
+                />;
+            }
+
+            return (
+                <div className="p-6 space-y-6 animate-fade-in">
+                    <div><label className="text-xs font-semibold text-gray-600">Nama Pelanggan</label><input type="text" value={customerName} onChange={(e)=>setCustomerName(e.target.value)} className="w-full p-2 rounded border border-gray-300" /></div>
+                    <div><label className="text-xs font-semibold text-gray-600">Unit / Device</label><input type="text" value={device} onChange={(e)=>setDevice(e.target.value)} className="w-full p-2 rounded border border-gray-300" placeholder="Ex: Stik PS4 / Mesin PS3" /></div>
+                    <div><label className="text-xs font-semibold text-gray-600">Kerusakan / Tindakan</label><textarea value={issue} onChange={(e)=>setIssue(e.target.value)} className="w-full p-2 rounded border border-gray-300 h-24" placeholder="Deskripsi perbaikan..." /></div>
+                    <div><label className="text-xs font-semibold text-gray-600">Biaya Service (Rp)</label><input type="number" value={price} onChange={(e)=>setPrice(e.target.value)} className="w-full p-2 rounded border border-gray-300 font-bold" /></div>
+                    <button onClick={() => setShowInvoice(true)} className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl flex items-center justify-center gap-2"><IconPrinter size={20} /> Buat Invoice</button>
+                </div>
+            );
+        };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
