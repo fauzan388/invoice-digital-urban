@@ -87,7 +87,7 @@
         const IconX = ({size=24}) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>);
         const IconShare = ({size=24}) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>);
         const IconDownload = ({size=24}) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>);
-        const IconSparkles = ({size=24, className=""}) => (<svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>);
+        const IconSparkles = ({size=24, className=""}) => (<svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z"/></svg>);
 
         // --- Main App Component ---
         const App = () => {
@@ -164,6 +164,7 @@ Antar Jemput : Ya`);
             const [showInvoice, setShowInvoice] = useState(false);
             const [isAiLoading, setIsAiLoading] = useState(false);
             const [isMsgLoading, setIsMsgLoading] = useState(false);
+            const [isPdfProcessing, setIsPdfProcessing] = useState(false);
             
             const invoiceRef = useRef();
 
@@ -235,20 +236,57 @@ Antar Jemput : Ya`);
                 setShowInvoice(true);
             };
 
-            const handleDownloadPDF = () => {
+            // --- FITUR DOWNLOAD & SHARE PDF ---
+            const handleDownloadPDF = async () => {
                 if (!window.html2pdf) {
                     alert("Sistem PDF belum siap.");
                     return;
                 }
+                
+                setIsPdfProcessing(true); // Indikator loading tombol
+                
                 const element = invoiceRef.current;
+                const filename = `Invoice_${(customerName || 'Cust').replace(/\s+/g, '_')}_${Date.now()}.pdf`;
                 const opt = {
                     margin: 0,
-                    filename: `Invoice_${customerName.replace(/\s+/g, '_')}_${Date.now()}.pdf`,
+                    filename: filename,
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2, useCORS: true },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
-                window.html2pdf().set(opt).from(element).save();
+
+                try {
+                    // 1. Coba Generate sebagai Blob untuk Web Share API
+                    const worker = window.html2pdf().set(opt).from(element);
+                    const pdfBlob = await worker.output('blob');
+                    
+                    const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+                    // 2. Cek apakah Browser mendukung Share File (biasanya di HP Android/iOS)
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Invoice URBAN Gaming',
+                            text: `Berikut invoice untuk ${customerName || 'Pelanggan'}`,
+                        });
+                    } else {
+                        // 3. Fallback: Jika tidak bisa share (misal di PC Desktop), lakukan download biasa
+                        const url = URL.createObjectURL(pdfBlob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }
+                } catch (err) {
+                    console.error("Gagal share/download PDF:", err);
+                    // Fallback terakhir jika cara di atas gagal total: pakai fungsi save() bawaan lib
+                    window.html2pdf().set(opt).from(element).save();
+                } finally {
+                    setIsPdfProcessing(false);
+                }
             };
 
             // --- ✨ FITUR AI 2: Generate Pesan WA ---
@@ -399,9 +437,11 @@ Antar Jemput : Ya`);
                             </button>
                             <button 
                                 onClick={handleDownloadPDF}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
+                                disabled={isPdfProcessing}
+                                className={`px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-all
+                                    ${isPdfProcessing ? 'opacity-70 cursor-wait' : ''}`}
                             >
-                                <IconDownload size={16} /> PDF
+                                {isPdfProcessing ? <span className="animate-pulse">Loading...</span> : <><IconShare size={16} /> Share PDF</>}
                             </button>
                         </div>
                     </div>
@@ -417,9 +457,9 @@ Antar Jemput : Ya`);
                             <div className="text-right flex flex-col items-end">
                             <img 
                                 src="logo.png" 
+                                onError={(e) => { e.target.onerror = null; e.target.src = "[https://i.ibb.co.com/207KDFc7/PLAYBOX.png](https://i.ibb.co.com/207KDFc7/PLAYBOX.png)"; }}
                                 alt="URBAN Gaming Logo" 
                                 className="h-16 mb-2 object-contain bg-white rounded-lg p-1"
-                                crossorigin="anonymous" 
                             />
                             <h3 className="font-bold text-lg">URBAN Gaming Lampung</h3>
                             <p className="text-indigo-200 text-xs mt-1">Rental PlayStation & Service</p>
